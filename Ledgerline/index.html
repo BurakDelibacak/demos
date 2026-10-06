@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ledgerline ROI estimate – AP automation payback calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F2F5F3; --panel:#FFFFFF; --ink:#152136; --ink-2:#526070; --rule:#D2DAD5;
+  --gain:#16705A; --gain-soft:#D8EEE5; --loss:#B42318; --loss-soft:#F7E0DC; --focus:#2F5BD3;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0E1620; --panel:#151F2A; --ink:#E4EBE8; --ink-2:#98A6B1; --rule:#2A3743;
+    --gain:#52C39E; --gain-soft:#163A2F; --loss:#F07A6E; --loss-soft:#3B1F1C; --focus:#8AA8FF;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0E1620; --panel:#151F2A; --ink:#E4EBE8; --ink-2:#98A6B1; --rule:#2A3743;
+  --gain:#52C39E; --gain-soft:#163A2F; --loss:#F07A6E; --loss-soft:#3B1F1C; --focus:#8AA8FF;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font:16px/1.55 "Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.num,.amt,.verdict strong,.chart text{font-variant-numeric:tabular-nums}
+.wrap{max-width:1140px;margin:0 auto;padding:18px 18px 56px}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:18px;border-bottom:1px solid var(--rule);margin-bottom:28px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1.05rem;letter-spacing:-.01em}
+.brand svg{flex:none}
+.brand span{font-weight:500;color:var(--ink-2)}
+.brand,.tag{white-space:nowrap}
+@media (max-width:420px){.brand span{display:none}}
+.tag{font-size:.8rem;color:var(--ink-2)}
+.grid{display:grid;gap:36px}
+@media (min-width:920px){
+  .grid{grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);gap:56px;align-items:start}
+  .inputs{position:sticky;top:calc(env(safe-area-inset-top,0px) + 20px)}
+}
+h1{font-size:clamp(1.6rem,1.1rem + 2.2vw,2.35rem);line-height:1.12;letter-spacing:-.025em;margin:0 0 10px;font-weight:800;max-width:18em}
+.lede{color:var(--ink-2);margin:0 0 26px;max-width:34em}
+.story p{font-size:clamp(1.12rem,.95rem + .9vw,1.42rem);line-height:1.75;margin:0 0 18px;max-width:30em;letter-spacing:-.005em}
+.field{white-space:nowrap;color:var(--gain);font-weight:700}
+.num{
+  font:inherit;font-weight:700;color:inherit;background:transparent;border:0;
+  border-bottom:2px dashed currentColor;border-radius:0;padding:0 2px;margin:0 1px;
+  text-align:center;min-width:2.5ch;outline:none;-moz-appearance:textfield;
+}
+.num:focus-visible{background:var(--gain-soft);border-bottom-style:solid}
+.num[aria-invalid="true"]{color:var(--loss)}
+.scen{margin:26px 0 8px}
+.scen-label{font-weight:700;margin:0 0 10px;font-size:.98rem}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:999px;padding:4px;background:var(--panel);flex-wrap:wrap}
+.seg button{
+  font:inherit;font-size:.93rem;font-weight:500;color:var(--ink-2);background:transparent;border:0;
+  padding:8px 14px;border-radius:999px;cursor:pointer;min-height:40px
+}
+.seg button[aria-checked="true"]{background:var(--ink);color:var(--paper);font-weight:700}
+.scen-note{font-size:.88rem;color:var(--ink-2);margin:10px 0 0;max-width:34em}
+details{margin-top:22px;border-top:1px solid var(--rule);padding-top:14px}
+summary{cursor:pointer;font-weight:700;list-style:none;display:flex;align-items:center;gap:8px;min-height:40px}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"+";display:inline-grid;place-items:center;width:22px;height:22px;border:1px solid var(--rule);border-radius:6px;font-weight:500}
+details[open] summary::before{content:"–"}
+.fine{display:grid;gap:14px;margin-top:12px}
+.fine label{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:.95rem}
+.fine .box{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--rule);border-radius:8px;padding:6px 10px;background:var(--panel)}
+.fine .box .num{border:0;text-align:right;width:8ch;color:var(--ink)}
+.fine select{font:inherit;border:1px solid var(--rule);border-radius:8px;padding:7px 10px;background:var(--panel);color:var(--ink)}
+.rates{width:100%;border-collapse:collapse;font-size:.9rem;margin-top:4px}
+.rates th,.rates td{text-align:left;padding:6px 0;border-bottom:1px solid var(--rule);font-weight:400}
+.rates td{text-align:right;color:var(--ink-2)}
+.rates tr.on td,.rates tr.on th{color:var(--ink);font-weight:700}
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:16px;padding:22px 20px}
+@media (min-width:600px){.panel{padding:28px 30px}}
+.verdict{font-size:clamp(1.5rem,1.1rem + 1.8vw,2.15rem);line-height:1.2;letter-spacing:-.02em;margin:0 0 10px;font-weight:800}
+.verdict strong{color:var(--gain);white-space:nowrap}
+.verdict.neg strong{color:var(--loss)}
+.sub{margin:0 0 20px;color:var(--ink-2);font-size:1.02rem;max-width:36em}
+.sub strong{color:var(--ink)}
+.chart-wrap{margin:6px -6px 4px;overflow-x:auto}
+.chart{display:block;width:100%;height:auto}
+.chart .grid-l{stroke:var(--rule);stroke-width:1}
+.chart .zero{stroke:var(--ink-2);stroke-width:1.2}
+.chart .line{fill:none;stroke:var(--gain);stroke-width:2.6;stroke-linejoin:round;stroke-linecap:round}
+.chart .a-up{fill:var(--gain-soft)}
+.chart .a-dn{fill:var(--loss-soft)}
+.chart text{fill:var(--ink-2);font-size:12px;font-family:inherit}
+.chart .pb-l{stroke:var(--ink);stroke-width:1;stroke-dasharray:3 4}
+.chart .pb-d{fill:var(--panel);stroke:var(--ink);stroke-width:2}
+.chart .pb-t{fill:var(--ink);font-weight:700}
+.axis-note{font-size:.82rem;color:var(--ink-2);margin:0 0 22px}
+h2{font-size:1.08rem;margin:0 0 8px;letter-spacing:-.01em}
+table.ledger{width:100%;border-collapse:collapse;margin-bottom:24px}
+.ledger td{padding:11px 0;border-bottom:1px solid var(--rule);vertical-align:top}
+.ledger td.amt{text-align:right;font-weight:700;white-space:nowrap;padding-left:12px}
+.ledger .hint{display:block;font-size:.85rem;color:var(--ink-2)}
+.ledger .cost{color:var(--ink-2)}
+.ledger tr.total td{border-bottom:3px double var(--ink);font-weight:800}
+.ledger tr.total td.amt{color:var(--gain)}
+.ledger tr.total.neg td.amt{color:var(--loss)}
+.cpi{display:grid;gap:10px;margin:8px 0 26px}
+.cpi-row{display:grid;grid-template-columns:8.5em 1fr auto;align-items:center;gap:10px;font-size:.93rem}
+.cpi-bar{height:12px;border-radius:6px;background:var(--rule);overflow:hidden}
+.cpi-bar i{display:block;height:100%;border-radius:6px;background:var(--ink-2)}
+.cpi-row.after .cpi-bar i{background:var(--gain)}
+.cpi-row b{font-variant-numeric:tabular-nums}
+.lead{border-top:1px solid var(--rule);padding-top:20px}
+.lead p{margin:0 0 14px;color:var(--ink-2);font-size:.95rem}
+.lead-form{display:grid;gap:10px}
+@media (min-width:600px){.lead-form{grid-template-columns:1fr 1fr}.lead-form .btn{grid-column:1 / -1;justify-self:start}}
+.lead-form input{
+  font:inherit;border:1px solid var(--rule);border-radius:10px;padding:11px 12px;background:var(--paper);color:var(--ink);min-height:46px;width:100%
+}
+.btn{
+  font:inherit;font-weight:700;border:0;border-radius:10px;padding:11px 18px;min-height:46px;cursor:pointer;
+  background:var(--ink);color:var(--paper)
+}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--rule)}
+.status{font-size:.9rem;margin:10px 0 0;min-height:1.4em}
+.status.ok{color:var(--gain)}
+.status.err{color:var(--loss)}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-size:.84rem;color:var(--ink-2);max-width:62em}
+footer p{margin:0 0 8px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="bar">
+    <div class="brand">
+      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true">
+        <rect x="1" y="1" width="24" height="24" rx="6" fill="var(--ink)"/>
+        <path d="M6 9h14M6 13h9M6 17h6" stroke="var(--paper)" stroke-width="2" stroke-linecap="round"/>
+        <path d="M15.5 17.5l2 2 3.5-4" stroke="var(--gain-soft)" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Ledgerline <span>ROI estimate</span>
+    </div>
+    <div class="tag">Illustrative demo</div>
+  </header>
+
+  <div class="grid">
+    <section class="inputs" aria-labelledby="h-in">
+      <h1 id="h-in">What would automating accounts payable be worth to you?</h1>
+      <p class="lede">Change any underlined number to match your team. The estimate updates as you type.</p>
+
+      <div class="story">
+        <p>We process <span class="field"><input class="num" id="vol" inputmode="numeric" aria-label="Invoices per month"></span> invoices a month. Keying and approving one takes about <span class="field"><input class="num" id="mins" inputmode="decimal" aria-label="Minutes per invoice"> min</span>, and our AP team costs <span class="field"><span class="cur">$</span><input class="num" id="rate" inputmode="decimal" aria-label="Loaded hourly cost of AP staff"></span> an hour, fully loaded.</p>
+        <p>About <span class="field"><input class="num" id="excPct" inputmode="decimal" aria-label="Share of invoices with exceptions, percent">%</span> of invoices hit an exception, and each one costs us around <span class="field"><span class="cur">$</span><input class="num" id="excCost" inputmode="decimal" aria-label="Cost to resolve one exception"></span> to resolve. We miss roughly <span class="field"><span class="cur">$</span><input class="num" id="disc" inputmode="numeric" aria-label="Early-payment discounts missed per year"></span> a year in early-payment discounts.</p>
+      </div>
+
+      <div class="scen">
+        <p class="scen-label" id="scen-l">How cautious should the estimate be?</p>
+        <div class="seg" role="radiogroup" aria-labelledby="scen-l" id="seg">
+          <button type="button" role="radio" data-s="cons">Conservative</button>
+          <button type="button" role="radio" data-s="exp">Expected</button>
+          <button type="button" role="radio" data-s="opt">Optimistic</button>
+        </div>
+        <p class="scen-note" id="scen-note"></p>
+      </div>
+
+      <details>
+        <summary>Pricing and assumptions</summary>
+        <div class="fine">
+          <label>Ledgerline plan, per month
+            <span class="box"><span class="cur">$</span><input class="num" id="price" inputmode="numeric" aria-label="Plan price per month"></span>
+          </label>
+          <label>One-time implementation
+            <span class="box"><span class="cur">$</span><input class="num" id="impl" inputmode="numeric" aria-label="One-time implementation cost"></span>
+          </label>
+          <label>Currency
+            <select id="currency" aria-label="Currency">
+              <option value="$">US dollar ($)</option>
+              <option value="€">Euro (€)</option>
+              <option value="£">Pound (£)</option>
+            </select>
+          </label>
+          <table class="rates" aria-label="Scenario rates">
+            <thead><tr><th scope="col">Scenario</th><td>Time saved</td><td>Exceptions avoided</td><td>Discounts captured</td></tr></thead>
+            <tbody id="rates"></tbody>
+          </table>
+        </div>
+      </details>
+    </section>
+
+    <section class="panel" aria-labelledby="verdict" aria-live="polite">
+      <p class="verdict" id="verdict"></p>
+      <p class="sub" id="sub"></p>
+
+      <div class="chart-wrap"><svg class="chart" id="chart" viewBox="0 0 640 290" preserveAspectRatio="xMidYMid meet" role="img" aria-label=""></svg></div>
+      <p class="axis-note">Cumulative value after all costs, by month after go-live. The first three months assume a gradual ramp-up.</p>
+
+      <h2>Where the value comes from, per year</h2>
+      <table class="ledger"><tbody id="ledger"></tbody></table>
+
+      <h2>Cost to process one invoice</h2>
+      <div class="cpi" id="cpi"></div>
+
+      <div class="lead">
+        <h2>Get this analysis by email</h2>
+        <p>We'll send the numbers above with a one-page summary you can share with your CFO.</p>
+        <form class="lead-form" id="lead" novalidate>
+          <label class="sr" for="email">Work email</label>
+          <input id="email" type="email" autocomplete="email" placeholder="Work email" required>
+          <label class="sr" for="company">Company</label>
+          <input id="company" type="text" autocomplete="organization" placeholder="Company">
+          <button class="btn" type="submit">Email me this analysis</button>
+        </form>
+        <p class="status" id="lead-status" role="status"></p>
+        <div class="actions"><button class="btn ghost" type="button" id="csv" hidden>Download as CSV</button></div>
+        <p class="status" id="csv-status" role="status"></p>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <p>This is an illustrative estimate, not a quote. Ledgerline is a fictional product used to demonstrate a custom ROI calculator. Time savings assume 1,760 working hours per full-time employee and a 25%, 50% and 75% ramp-up in the first three months.</p>
+    <p>Calculator design and build: Omnius Creative.</p>
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var SCEN = {
+    cons:{name:"Conservative", tr:.55, er:.30, dc:.25, note:"Assumes a slower rollout and that only part of your approval chain moves into Ledgerline."},
+    exp: {name:"Expected",     tr:.70, er:.50, dc:.40, note:"Based on typical results for teams of your size after the first quarter."},
+    opt: {name:"Optimistic",   tr:.80, er:.65, dc:.60, note:"Assumes full adoption, supplier self-service and most approvals on mobile."}
+  };
+  var RAMP = [.25,.5,.75];
+  var DEF = {vol:1200, mins:9, rate:34, excPct:6, excCost:40, disc:12000, price:1450, impl:9500, scen:"exp", cur:"$"};
+  var LIMITS = {vol:[1,1e7], mins:[0,600], rate:[0,1e4], excPct:[0,100], excCost:[0,1e6], disc:[0,1e9], price:[0,1e7], impl:[0,1e8]};
+  var KEYS = ["vol","mins","rate","excPct","excCost","disc","price","impl"];
+  var STORE = "ledgerline-roi-v1";
+  var state = Object.assign({}, DEF);
+  var drawn = false;
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  try { var saved = JSON.parse(localStorage.getItem(STORE) || "null"); if (saved && typeof saved === "object") { KEYS.concat(["scen","cur"]).forEach(function(k){ if (saved[k] !== undefined) state[k] = saved[k]; }); } } catch(e) {}
+  if (!SCEN[state.scen]) state.scen = "exp";
+  if (["$","€","£"].indexOf(state.cur) < 0) state.cur = "$";
+
+  function persist(){ try { localStorage.setItem(STORE, JSON.stringify(state)); } catch(e) {} }
+  function $(id){ return document.getElementById(id); }
+  var nf0 = new Intl.NumberFormat("en-US",{maximumFractionDigits:0});
+  var nf1 = new Intl.NumberFormat("en-US",{maximumFractionDigits:1});
+  var nf2 = new Intl.NumberFormat("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+  function money(n){ var s = nf0.format(Math.round(Math.abs(n))); return (n < -0.5 ? "−" : "") + state.cur + s; }
+  function money2(n){ return state.cur + nf2.format(n); }
+  function short(n){
+    var a = Math.abs(n), sign = n < 0 ? "−" : "";
+    if (a >= 1e6) return sign + state.cur + nf1.format(a/1e6) + "m";
+    if (a >= 1e3) return sign + state.cur + nf0.format(a/1e3) + "k";
+    return sign + state.cur + nf0.format(a);
+  }
+  function fmtInput(k, v){ return (k === "mins" || k === "rate" || k === "excPct" || k === "excCost") ? nf1.format(v) : nf0.format(v); }
+  function parse(s){ var t = String(s).replace(/[^0-9.]/g,""); if (t === "" || t === ".") return NaN; return parseFloat(t); }
+  function sizeInput(el, k){
+    var len = el.value.length, n = parse(el.value);
+    if (k && !isNaN(n)) len = Math.max(len, fmtInput(k, n).length);
+    el.style.width = Math.max(2.5, len + 0.6) + "ch";
+  }
+
+  function calc(){
+    var s = SCEN[state.scen], v = state;
+    var invYear = v.vol * 12;
+    var laborHours = invYear * v.mins / 60 * s.tr;
+    var laborSave = laborHours * v.rate;
+    var excSave = invYear * (v.excPct/100) * v.excCost * s.er;
+    var discSave = v.disc * s.dc;
+    var benefit = laborSave + excSave + discSave;
+    var mb = benefit / 12;
+    var series = [-v.impl], cum = -v.impl;
+    for (var t = 1; t <= 36; t++){ var f = t <= 3 ? RAMP[t-1] : 1; cum += mb * f - v.price; series.push(cum); }
+    var pb = null;
+    if (series[0] >= 0) pb = 0;
+    else for (var i = 1; i < series.length; i++){ if (series[i] >= 0){ var p = series[i-1], q = series[i]; pb = (i-1) + (-p)/(q-p); break; } }
+    var spend36 = v.impl + v.price * 36;
+    var net36 = series[36];
+    var cpiBefore = v.mins/60*v.rate + (v.excPct/100)*v.excCost;
+    var cpiAfter = v.mins/60*v.rate*(1-s.tr) + (v.excPct/100)*v.excCost*(1-s.er) + v.price / v.vol;
+    return {laborHours:laborHours, fte:laborHours/1760, laborSave:laborSave, excSave:excSave, discSave:discSave, benefit:benefit,
+            subYear:v.price*12, series:series, pb:pb, net36:net36, roi: spend36 > 0 ? net36/spend36 : null, cpiBefore:cpiBefore, cpiAfter:cpiAfter};
+  }
+
+  function niceStep(range, count){
+    var raw = range / count, mag = Math.pow(10, Math.floor(Math.log10(raw))), n = raw / mag;
+    var step = n < 1.5 ? 1 : n < 3 ? 2 : n < 7 ? 5 : 10;
+    return step * mag;
+  }
+
+  function drawChart(r){
+    var svg = $("chart");
+    var cw = (svg.parentNode && svg.parentNode.clientWidth) || 640;
+    var W = Math.round(Math.min(640, Math.max(300, cw))), H = W < 480 ? 240 : 290, L = 52, R = 14, T = 22, B = 38, s = r.series;
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    var lo = Math.min(0, Math.min.apply(null,s)), hi = Math.max(0, Math.max.apply(null,s));
+    if (hi - lo < 1) hi = lo + 1;
+    var step = niceStep(hi - lo, W < 580 ? 5 : 6);
+    lo = Math.floor(lo/step)*step; hi = Math.ceil(hi/step)*step;
+    function x(m){ return L + (W-L-R) * m/36; }
+    function y(val){ return T + (H-T-B) * (hi-val)/(hi-lo); }
+    var ns = "http://www.w3.org/2000/svg";
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    function el(tag, attrs, text){ var e = document.createElementNS(ns, tag); for (var k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; svg.appendChild(e); return e; }
+    var defs = el("defs", {});
+    var z = y(0);
+    [["cu",T,z-T],["cd",z,H-B-z]].forEach(function(c){
+      var cp = document.createElementNS(ns,"clipPath"); cp.setAttribute("id",c[0]);
+      var rc = document.createElementNS(ns,"rect"); rc.setAttribute("x",L); rc.setAttribute("y",c[1]); rc.setAttribute("width",W-L-R); rc.setAttribute("height",Math.max(0,c[2]));
+      cp.appendChild(rc); defs.appendChild(cp);
+    });
+    for (var v = lo; v <= hi + step/2; v += step){
+      if (Math.abs(v) < step/1000) v = 0;
+      el("line",{x1:L,x2:W-R,y1:y(v),y2:y(v),"class": v === 0 ? "zero" : "grid-l"});
+      el("text",{x:L-8,y:y(v)+4,"text-anchor":"end"}, short(v));
+    }
+    var xs = W < 580 ? 12 : 6;
+    for (var m = 0; m <= 36; m += xs){
+      var an = m === 0 ? "start" : m === 36 ? "end" : "middle";
+      el("text",{x: m === 0 ? x(0) - 4 : x(m), y:H-B+20, "text-anchor":an}, m === 0 ? "Go-live" : (W < 420 ? "M" : "Month ") + m);
+    }
+    var d = s.map(function(val,i){ return (i ? "L" : "M") + x(i).toFixed(1) + " " + y(val).toFixed(1); }).join(" ");
+    var area = d + " L" + x(36).toFixed(1) + " " + z.toFixed(1) + " L" + x(0).toFixed(1) + " " + z.toFixed(1) + " Z";
+    el("path",{d:area,"class":"a-up","clip-path":"url(#cu)"});
+    el("path",{d:area,"class":"a-dn","clip-path":"url(#cd)"});
+    var line = el("path",{d:d,"class":"line"});
+    if (r.pb !== null && r.pb <= 36){
+      var px = x(r.pb);
+      el("line",{x1:px,x2:px,y1:T,y2:H-B,"class":"pb-l"});
+      el("circle",{cx:px,cy:z,r:5.5,"class":"pb-d"});
+      var anchor = px > W - 120 ? "end" : "start";
+      el("text",{x: anchor === "start" ? px+8 : px-8, y:T+12, "text-anchor":anchor, "class":"pb-t"}, "Paid back");
+    }
+    svg.setAttribute("aria-label", "Cumulative value after all costs over 36 months, from " + money(s[0]) + " at go-live to " + money(s[36]) + " at month 36" + (r.pb !== null ? ", reaching zero at month " + nf1.format(r.pb) + "." : ", without reaching zero."));
+    if (!drawn && !reduce && line.getTotalLength){
+      var len = line.getTotalLength();
+      line.style.strokeDasharray = len; line.style.strokeDashoffset = len;
+      line.getBoundingClientRect();
+      line.style.transition = "stroke-dashoffset 1s cubic-bezier(.3,.7,.2,1)";
+      line.style.strokeDashoffset = 0;
+      setTimeout(function(){ line.style.strokeDasharray = ""; line.style.transition = ""; }, 1100);
+    }
+    drawn = true;
+  }
+
+  function render(){
+    var r = calc();
+    var vd = $("verdict"), sub = $("sub");
+    if (r.pb === null){
+      vd.className = "verdict neg";
+      vd.innerHTML = "Doesn't pay back within <strong>three years</strong>.";
+      sub.innerHTML = "At these numbers the subscription costs more than it saves. Over three years the net result is <strong>" + money(r.net36) + "</strong>. Try your real invoice volume, or a less cautious scenario.";
+    } else {
+      vd.className = "verdict";
+      var when = r.pb < 1 ? "under a month" : nf1.format(r.pb) + " months";
+      vd.innerHTML = "Pays for itself in <strong>" + when + "</strong>.";
+      sub.innerHTML = "Over three years you keep <strong>" + money(r.net36) + "</strong> after every cost" + (r.roi !== null ? ", a <strong>" + nf0.format(r.roi*100) + "%</strong> return on what you spend." : ".");
+    }
+    drawChart(r);
+    var net1 = r.benefit - r.subYear - state.impl;
+    var rows = [
+      ["Time given back to your team", nf0.format(r.laborHours) + " hours a year, about " + nf1.format(r.fte) + " full-time people", r.laborSave, false],
+      ["Fewer exceptions to chase", nf0.format(state.vol*12*state.excPct/100*SCEN[state.scen].er) + " fewer a year", r.excSave, false],
+      ["Early-payment discounts captured", "Paid on time because approvals move faster", r.discSave, false],
+      ["Ledgerline subscription", money(state.price) + " a month", -r.subYear, true],
+      ["Implementation", "One-time, first year only", -state.impl, true]
+    ];
+    var html = rows.map(function(rw){
+      return "<tr><td" + (rw[3] ? " class=\"cost\"" : "") + ">" + rw[0] + "<span class=\"hint\">" + rw[1] + "</span></td><td class=\"amt" + (rw[3] ? " cost" : "") + "\">" + money(rw[2]) + "</td></tr>";
+    }).join("");
+    html += "<tr class=\"total" + (net1 < 0 ? " neg" : "") + "\"><td>Net value in year one</td><td class=\"amt\">" + money(net1) + "</td></tr>";
+    $("ledger").innerHTML = html;
+    var mx = Math.max(r.cpiBefore, r.cpiAfter, 0.01);
+    $("cpi").innerHTML =
+      "<div class=\"cpi-row\"><span>Today</span><span class=\"cpi-bar\"><i style=\"width:" + (r.cpiBefore/mx*100).toFixed(1) + "%\"></i></span><b>" + money2(r.cpiBefore) + "</b></div>" +
+      "<div class=\"cpi-row after\"><span>With Ledgerline</span><span class=\"cpi-bar\"><i style=\"width:" + (r.cpiAfter/mx*100).toFixed(1) + "%\"></i></span><b>" + money2(r.cpiAfter) + "</b></div>";
+    $("scen-note").textContent = SCEN[state.scen].note;
+    Array.prototype.forEach.call(document.querySelectorAll("#seg button"), function(b){ b.setAttribute("aria-checked", b.dataset.s === state.scen ? "true" : "false"); b.tabIndex = b.dataset.s === state.scen ? 0 : -1; });
+    $("rates").innerHTML = Object.keys(SCEN).map(function(k){ var s = SCEN[k]; return "<tr" + (k === state.scen ? " class=\"on\"" : "") + "><th scope=\"row\">" + s.name + "</th><td>" + Math.round(s.tr*100) + "%</td><td>" + Math.round(s.er*100) + "%</td><td>" + Math.round(s.dc*100) + "%</td></tr>"; }).join("");
+    return r;
+  }
+
+  KEYS.forEach(function(k){
+    var inp = $(k);
+    inp.value = fmtInput(k, state[k]); sizeInput(inp, k);
+    inp.addEventListener("input", function(){
+      sizeInput(inp, k);
+      var n = parse(inp.value), lim = LIMITS[k];
+      if (isNaN(n) || n < lim[0] || n > lim[1]){ inp.setAttribute("aria-invalid","true"); return; }
+      inp.removeAttribute("aria-invalid");
+      state[k] = n; persist(); render();
+    });
+    inp.addEventListener("blur", function(){
+      var n = parse(inp.value), lim = LIMITS[k];
+      if (isNaN(n)) n = state[k];
+      n = Math.min(lim[1], Math.max(lim[0], n));
+      state[k] = n; inp.value = fmtInput(k, n); inp.removeAttribute("aria-invalid"); sizeInput(inp, k); persist(); render();
+    });
+    inp.addEventListener("focus", function(){ try { inp.select(); } catch(e) {} });
+    inp.addEventListener("keydown", function(e){ if (e.key === "Enter") inp.blur(); });
+  });
+
+  var segBtns = Array.prototype.slice.call(document.querySelectorAll("#seg button"));
+  segBtns.forEach(function(b, i){
+    function pick(){ if (state.scen === b.dataset.s) return; state.scen = b.dataset.s; persist(); render(); }
+    b.addEventListener("pointerdown", pick);
+    b.addEventListener("click", pick);
+    b.addEventListener("keydown", function(e){
+      var d = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
+      if (!d) return; e.preventDefault();
+      var nb = segBtns[(i + d + segBtns.length) % segBtns.length];
+      state.scen = nb.dataset.s; persist(); render(); nb.focus();
+    });
+  });
+
+  function applyCurrency(){ Array.prototype.forEach.call(document.querySelectorAll(".cur"), function(s){ s.textContent = state.cur; }); }
+  var curSel = $("currency"); curSel.value = state.cur; applyCurrency();
+  curSel.addEventListener("change", function(){ state.cur = curSel.value; applyCurrency(); persist(); render(); });
+
+  $("lead").addEventListener("submit", function(e){
+    e.preventDefault();
+    var em = $("email"), st = $("lead-status"), val = em.value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(val)){
+      st.className = "status err"; st.textContent = "Enter a work email like name@company.com."; em.setAttribute("aria-invalid","true"); em.focus(); return;
+    }
+    em.removeAttribute("aria-invalid");
+    st.className = "status ok";
+    st.textContent = "Demo mode: nothing was sent. In a live build this goes straight to your CRM or inbox with the numbers above.";
+  });
+
+  render();
+  var rz; window.addEventListener("resize", function(){ clearTimeout(rz); rz = setTimeout(function(){ drawChart(calc()); }, 150); });
+
+  var csvBtn = $("csv"), csvSt = $("csv-status");
+  if (window.claude && typeof window.claude.use === "function"){
+    window.claude.use("downloads").then(function(dl){
+      if (!dl) return;
+      csvBtn.hidden = false;
+      csvBtn.addEventListener("click", function(){
+        var r = calc(), s = SCEN[state.scen], c = state.cur;
+        var lines = [
+          ["Ledgerline ROI estimate (illustrative)"], [],
+          ["Input","Value"],
+          ["Invoices per month", state.vol], ["Minutes per invoice", state.mins], ["AP cost per hour (" + c + ")", state.rate],
+          ["Exception rate (%)", state.excPct], ["Cost per exception (" + c + ")", state.excCost], ["Missed discounts per year (" + c + ")", state.disc],
+          ["Plan per month (" + c + ")", state.price], ["Implementation (" + c + ")", state.impl], ["Scenario", s.name], [],
+          ["Result","Value"],
+          ["Hours saved per year", Math.round(r.laborHours)], ["Labor savings per year", Math.round(r.laborSave)],
+          ["Exception savings per year", Math.round(r.excSave)], ["Discounts captured per year", Math.round(r.discSave)],
+          ["Subscription per year", Math.round(r.subYear)], ["Payback (months)", r.pb === null ? "Not within 36 months" : r.pb.toFixed(1)],
+          ["Net value over 3 years", Math.round(r.net36)], ["3-year ROI (%)", r.roi === null ? "" : Math.round(r.roi*100)],
+          ["Cost per invoice today", r.cpiBefore.toFixed(2)], ["Cost per invoice with Ledgerline", r.cpiAfter.toFixed(2)], [],
+          ["Month","Cumulative net value"]
+        ];
+        r.series.forEach(function(v,i){ lines.push([i, Math.round(v)]); });
+        var csv = lines.map(function(row){ return row.map(function(cell){ var t = String(cell); return /[",\n]/.test(t) ? "\"" + t.replace(/"/g,"\"\"") + "\"" : t; }).join(","); }).join("\n");
+        csvSt.className = "status"; csvSt.textContent = "";
+        dl.save({filename:"ledgerline-roi-estimate.csv", data:csv}).then(function(){
+          csvSt.className = "status ok"; csvSt.textContent = "Downloaded.";
+        }).catch(function(err){
+          var code = err && err.code;
+          if (code === "declined") return;
+          if (code === "rate_limited"){ csvSt.className = "status err"; csvSt.textContent = "A download prompt is already open. Finish that one, then try again."; return; }
+          csvBtn.hidden = true; csvSt.className = "status err"; csvSt.textContent = "Downloads aren't available in this view.";
+        });
+      });
+    });
+  }
+})();
+</script>
+</body>
+</html>

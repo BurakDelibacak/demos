@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Northmere Financial – Loan and savings calculators</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F6F7F9; --card:#FFFFFF; --ink:#14203A; --muted:#5A6477; --line:#DDE1E8;
+  --navy:#1F3B70; --navy-soft:#DCE4F3; --brass:#A77A22; --brass-soft:#F1E6CD; --bad:#B42318; --focus:#2F5BD3;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0D1422; --card:#141D2E; --ink:#E7EBF2; --muted:#9AA5B8; --line:#27324A;
+    --navy:#8FB0F0; --navy-soft:#1E2E4F; --brass:#E0B25A; --brass-soft:#3A2F17; --bad:#F07A6E; --focus:#9DB7FF;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0D1422; --card:#141D2E; --ink:#E7EBF2; --muted:#9AA5B8; --line:#27324A;
+  --navy:#8FB0F0; --navy-soft:#1E2E4F; --brass:#E0B25A; --brass-soft:#3A2F17; --bad:#F07A6E; --focus:#9DB7FF;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Public Sans",system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.serif{font-family:"Source Serif 4",Georgia,"Times New Roman",serif}
+.tnum{font-variant-numeric:tabular-nums lining-nums}
+.wrap{max-width:1120px;margin:0 auto;padding:18px 18px 56px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:30px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.01em;white-space:nowrap}
+.brand small{font-weight:400;color:var(--muted);font-size:.85rem}
+@media (max-width:420px){.brand small{display:none}}
+.top .note{font-size:.8rem;color:var(--muted);white-space:nowrap}
+h1{font-family:"Source Serif 4",Georgia,serif;font-weight:700;font-size:clamp(1.7rem,1.15rem + 2.3vw,2.6rem);line-height:1.12;letter-spacing:-.015em;margin:0 0 10px;max-width:20em}
+.lede{color:var(--muted);margin:0 0 26px;max-width:38em}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:24px;overflow-x:auto}
+.tabs button{font:inherit;font-weight:600;color:var(--muted);background:none;border:0;border-bottom:3px solid transparent;padding:12px 14px 10px;cursor:pointer;white-space:nowrap;min-height:46px}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--navy)}
+.pane{display:grid;gap:28px}
+.pane[hidden]{display:none}
+@media (min-width:900px){.pane{grid-template-columns:minmax(0,.9fr) minmax(0,1.3fr);gap:44px;align-items:start}.controls{position:sticky;top:calc(env(safe-area-inset-top,0px) + 18px)}}
+.controls{display:grid;gap:20px}
+.ctl label{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-weight:600;font-size:.95rem;margin-bottom:6px}
+.ctl .help{font-weight:400;color:var(--muted);font-size:.83rem}
+.entry{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--card);padding:0 12px;min-height:48px}
+.entry:focus-within{border-color:var(--navy);box-shadow:0 0 0 3px var(--navy-soft)}
+.entry span{color:var(--muted);font-weight:500}
+.entry input{font:inherit;font-size:1.08rem;font-weight:600;border:0;background:transparent;color:var(--ink);width:100%;padding:10px 6px;outline:none;font-variant-numeric:tabular-nums}
+.entry input[aria-invalid="true"]{color:var(--bad)}
+input[type=range]{width:100%;margin:10px 0 0;accent-color:var(--navy);height:28px}
+.ctl label.toggle{display:flex;justify-content:flex-start;align-items:center;gap:10px;font-weight:400;font-size:.95rem;cursor:pointer;min-height:44px;margin:8px 0 0}
+.toggle input{width:20px;height:20px;accent-color:var(--navy)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 20px}
+@media (min-width:600px){.card{padding:28px 30px}}
+.split-head{font-family:"Source Serif 4",Georgia,serif;font-weight:700;font-size:clamp(1.35rem,1.05rem + 1.4vw,1.9rem);line-height:1.25;margin:0 0 16px;letter-spacing:-.01em}
+.split-head em{font-style:normal;color:var(--brass)}
+.split{display:flex;height:22px;border-radius:4px;overflow:hidden;background:var(--line);margin-bottom:8px}
+.split i{display:block;height:100%}
+.split .a{background:var(--navy)}
+.split .b{background:var(--brass)}
+.legend{display:flex;justify-content:space-between;gap:12px;font-size:.88rem;color:var(--muted);margin-bottom:18px;flex-wrap:wrap}
+.legend b{color:var(--ink);font-weight:600}
+.legend .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:0}
+.story{margin:0 0 22px;font-size:1.02rem;max-width:40em}
+.story strong{font-weight:700}
+.story.warn strong:first-child{color:var(--bad)}
+.figs{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line);margin:0 0 20px}
+.figs div{padding:12px 0;border-bottom:1px solid var(--line)}
+.figs div:nth-child(odd){padding-right:12px}
+.figs div:nth-child(even){padding-left:12px;border-left:1px solid var(--line)}
+.figs dt{font-size:.82rem;color:var(--muted);margin:0 0 2px}
+.figs dd{margin:0;font-size:1.15rem;font-weight:700;font-variant-numeric:tabular-nums}
+.chart-box{margin:0 -4px}
+.chart{display:block;width:100%;height:auto}
+.chart text{fill:var(--muted);font-size:12px;font-family:inherit;font-variant-numeric:tabular-nums}
+.chart .g{stroke:var(--line)}
+.chart .base{fill:none;stroke:var(--muted);stroke-width:1.6;stroke-dasharray:5 5}
+.chart .main{fill:none;stroke:var(--navy);stroke-width:2.6;stroke-linejoin:round}
+.chart .fill-a{fill:var(--navy-soft)}
+.chart .fill-b{fill:var(--brass-soft)}
+.chart .edge-b{fill:none;stroke:var(--brass);stroke-width:2.4;stroke-linejoin:round}
+.chart .goal{stroke:var(--ink);stroke-dasharray:2 4;stroke-width:1.2}
+.chart .goal-t{fill:var(--ink);font-weight:600}
+.cap{font-size:.82rem;color:var(--muted);margin:6px 0 0}
+.after{margin-top:30px;display:grid;gap:22px}
+@media (min-width:900px){.after{grid-template-columns:1.3fr 1fr;gap:44px}}
+.lead h2,.more h2{font-family:"Source Serif 4",Georgia,serif;font-size:1.3rem;margin:0 0 6px}
+.lead p,.more p{color:var(--muted);margin:0 0 14px;font-size:.95rem}
+.lead form{display:grid;gap:10px}
+@media (min-width:600px){.lead form{grid-template-columns:1fr 1fr}.lead form .btn{grid-column:1 / -1;justify-self:start}}
+.lead input{font:inherit;border:1px solid var(--line);border-radius:10px;padding:11px 12px;min-height:48px;background:var(--card);color:var(--ink);width:100%}
+.btn{font:inherit;font-weight:700;border:0;border-radius:10px;padding:12px 20px;min-height:48px;cursor:pointer;background:var(--navy);color:var(--card)}
+.btn.line{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.msg{font-size:.9rem;margin:10px 0 0;min-height:1.4em}
+.msg.ok{color:var(--navy)}
+.msg.err{color:var(--bad)}
+.cur-pick{display:flex;align-items:center;gap:10px;font-size:.9rem;color:var(--muted)}
+.cur-pick select{font:inherit;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--card);color:var(--ink)}
+footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--line);font-size:.83rem;color:var(--muted);max-width:62em}
+footer p{margin:0 0 8px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="13" fill="var(--navy)"/><path d="M8 19V9l12 10V9" stroke="var(--card)" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Northmere Financial <small>Planning tools</small>
+    </div>
+    <div class="note">Illustrative demo</div>
+  </header>
+
+  <h1>See what a loan really costs, and what steady saving can grow into.</h1>
+  <p class="lede">Two quick calculators. Adjust the numbers to your situation; everything updates as you go.</p>
+
+  <div class="tabs" role="tablist" aria-label="Calculators">
+    <button role="tab" id="t-loan" aria-controls="p-loan" data-tab="loan">Loan cost</button>
+    <button role="tab" id="t-inv" aria-controls="p-inv" data-tab="inv">Savings growth</button>
+  </div>
+
+  <section class="pane" id="p-loan" role="tabpanel" aria-labelledby="t-loan">
+    <div class="controls">
+      <div class="ctl"><label for="amt">Loan amount</label>
+        <div class="entry"><span class="cur">$</span><input id="amt" inputmode="numeric"></div>
+        <input type="range" id="amt-r" min="10000" max="1500000" step="5000" aria-label="Loan amount slider"></div>
+      <div class="ctl"><label for="rate">Interest rate <span class="help">per year</span></label>
+        <div class="entry"><input id="rate" inputmode="decimal"><span>%</span></div>
+        <input type="range" id="rate-r" min="0" max="15" step="0.05" aria-label="Interest rate slider"></div>
+      <div class="ctl"><label for="yrs">Term <span class="help">years</span></label>
+        <div class="entry"><input id="yrs" inputmode="numeric"><span>years</span></div>
+        <input type="range" id="yrs-r" min="1" max="40" step="1" aria-label="Term slider"></div>
+      <div class="ctl"><label for="extra">Extra payment <span class="help">each month</span></label>
+        <div class="entry"><span class="cur">$</span><input id="extra" inputmode="numeric"></div>
+        <input type="range" id="extra-r" min="0" max="3000" step="25" aria-label="Extra payment slider"></div>
+    </div>
+
+    <div class="card" aria-live="polite">
+      <p class="split-head" id="l-head"></p>
+      <div class="split" aria-hidden="true"><i class="a" id="l-sa"></i><i class="b" id="l-sb"></i></div>
+      <div class="legend" id="l-leg"></div>
+      <p class="story" id="l-story"></p>
+      <dl class="figs" id="l-figs"></dl>
+      <div class="chart-box"><svg class="chart" id="l-chart" role="img" aria-label=""></svg></div>
+      <p class="cap" id="l-cap">Balance still owed over time. The dashed line is the same loan without extra payments.</p>
+    </div>
+  </section>
+
+  <section class="pane" id="p-inv" role="tabpanel" aria-labelledby="t-inv" hidden>
+    <div class="controls">
+      <div class="ctl"><label for="start">Starting amount</label>
+        <div class="entry"><span class="cur">$</span><input id="start" inputmode="numeric"></div>
+        <input type="range" id="start-r" min="0" max="500000" step="1000" aria-label="Starting amount slider"></div>
+      <div class="ctl"><label for="monthly">Added each month</label>
+        <div class="entry"><span class="cur">$</span><input id="monthly" inputmode="numeric"></div>
+        <input type="range" id="monthly-r" min="0" max="5000" step="25" aria-label="Monthly contribution slider"></div>
+      <div class="ctl"><label for="ret">Expected return <span class="help">per year, before inflation</span></label>
+        <div class="entry"><input id="ret" inputmode="decimal"><span>%</span></div>
+        <input type="range" id="ret-r" min="0" max="12" step="0.1" aria-label="Expected return slider"></div>
+      <div class="ctl"><label for="span">Time horizon <span class="help">years</span></label>
+        <div class="entry"><input id="span" inputmode="numeric"><span>years</span></div>
+        <input type="range" id="span-r" min="1" max="50" step="1" aria-label="Time horizon slider"></div>
+      <div class="ctl"><label for="goal">Goal <span class="help">optional</span></label>
+        <div class="entry"><span class="cur">$</span><input id="goal" inputmode="numeric" placeholder="None"></div></div>
+      <div class="ctl"><label for="infl">Inflation <span class="help">per year</span></label>
+        <div class="entry"><input id="infl" inputmode="decimal"><span>%</span></div>
+        <label class="toggle"><input type="checkbox" id="real"> Show amounts in today's money</label></div>
+    </div>
+
+    <div class="card" aria-live="polite">
+      <p class="split-head" id="i-head"></p>
+      <div class="split" aria-hidden="true"><i class="a" id="i-sa"></i><i class="b" id="i-sb"></i></div>
+      <div class="legend" id="i-leg"></div>
+      <p class="story" id="i-story"></p>
+      <dl class="figs" id="i-figs"></dl>
+      <div class="chart-box"><svg class="chart" id="i-chart" role="img" aria-label=""></svg></div>
+      <p class="cap" id="i-cap"></p>
+    </div>
+  </section>
+
+  <div class="after">
+    <div class="lead">
+      <h2>Talk it through with an advisor</h2>
+      <p>Book a free 20-minute call. We'll look at these numbers with you and show options you may not have considered.</p>
+      <form id="lead" novalidate>
+        <label class="sr" for="l-email">Email</label>
+        <input id="l-email" type="email" autocomplete="email" placeholder="Email">
+        <label class="sr" for="l-name">Name</label>
+        <input id="l-name" type="text" autocomplete="name" placeholder="Name">
+        <button class="btn" type="submit">Request a call</button>
+      </form>
+      <p class="msg" id="lead-msg" role="status"></p>
+    </div>
+    <div class="more">
+      <h2>Keep a copy</h2>
+      <p>Download the year-by-year figures for the calculator you're viewing.</p>
+      <div class="cur-pick"><label for="cur">Currency</label>
+        <select id="cur"><option value="$">US dollar ($)</option><option value="€">Euro (€)</option><option value="£">Pound (£)</option></select>
+      </div>
+      <p style="margin-top:14px"><button class="btn line" type="button" id="csv" hidden>Download year-by-year CSV</button></p>
+      <p class="msg" id="csv-msg" role="status"></p>
+    </div>
+  </div>
+
+  <footer>
+    <p>These calculators give educational estimates, not financial advice. Loan figures assume a fixed rate and monthly payments; savings figures assume monthly compounding at a steady return, which real markets don't deliver. Northmere Financial is a fictional firm used to demonstrate a custom calculator build.</p>
+    <p>Calculator design and build: Omnius Creative.</p>
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var STORE = "northmere-calc-v1";
+  var DEF = {tab:"loan", cur:"$", amt:350000, rate:6.5, yrs:30, extra:200, start:25000, monthly:500, ret:6, span:25, goal:500000, infl:2.5, real:false};
+  var F = {
+    amt:{min:1000,max:1e8,dec:0}, rate:{min:0,max:40,dec:2}, yrs:{min:1,max:50,dec:0}, extra:{min:0,max:1e6,dec:0},
+    start:{min:0,max:1e9,dec:0}, monthly:{min:0,max:1e7,dec:0}, ret:{min:0,max:30,dec:1}, span:{min:1,max:60,dec:0},
+    goal:{min:0,max:1e10,dec:0,optional:true}, infl:{min:0,max:20,dec:1}
+  };
+  var S = Object.assign({}, DEF);
+  try { var sv = JSON.parse(localStorage.getItem(STORE) || "null"); if (sv && typeof sv === "object") Object.keys(DEF).forEach(function(k){ if (sv[k] !== undefined && typeof sv[k] === typeof DEF[k]) S[k] = sv[k]; }); } catch(e) {}
+  if (["loan","inv"].indexOf(S.tab) < 0) S.tab = "loan";
+  if (["$","€","£"].indexOf(S.cur) < 0) S.cur = "$";
+  function save(){ try { localStorage.setItem(STORE, JSON.stringify(S)); } catch(e) {} }
+  function $(id){ return document.getElementById(id); }
+  var n0 = new Intl.NumberFormat("en-US",{maximumFractionDigits:0});
+  var n1 = new Intl.NumberFormat("en-US",{maximumFractionDigits:1});
+  var n2 = new Intl.NumberFormat("en-US",{maximumFractionDigits:2});
+  var c2 = new Intl.NumberFormat("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+  function money(v){ return (v < -0.5 ? "−" : "") + S.cur + n0.format(Math.round(Math.abs(v))); }
+  function short(v){ var a = Math.abs(v), sg = v < 0 ? "−" : ""; if (a >= 1e6) return sg + S.cur + n1.format(a/1e6) + "m"; if (a >= 1e3) return sg + S.cur + n0.format(a/1e3) + "k"; return sg + S.cur + n0.format(a); }
+  function dur(m){ var y = Math.floor(m/12), r = m % 12, p = []; if (y) p.push(y + (y === 1 ? " year" : " years")); if (r) p.push(r + (r === 1 ? " month" : " months")); return p.join(" ") || "0 months"; }
+  function fmt(k, v){ if (F[k].optional && !v) return ""; return F[k].dec === 2 ? n2.format(v) : F[k].dec === 1 ? n1.format(v) : n0.format(v); }
+  function parse(s){ var t = String(s).replace(/[^0-9.]/g,""); if (t === "" || t === ".") return NaN; return parseFloat(t); }
+
+  /* ---------- math ---------- */
+  function amort(P, rate, years, extra){
+    var i = rate/1200, N = Math.round(years*12);
+    var M = i > 0 ? P*i/(1 - Math.pow(1+i, -N)) : P/N;
+    var bal = P, m = 0, tot = 0, bals = [P], yearly = [];
+    while (bal > 0.005 && m < 1200){
+      var it = bal*i, pay = Math.min(bal + it, M + extra), pr = pay - it;
+      bal -= pr; tot += it; m++;
+      if (bal < 0.005) bal = 0;
+      bals.push(bal);
+      var y = Math.ceil(m/12) - 1;
+      if (!yearly[y]) yearly[y] = {year:y+1, principal:0, interest:0, balance:0};
+      yearly[y].principal += pr; yearly[y].interest += it; yearly[y].balance = bal;
+    }
+    return {M:M, months:m, interest:tot, bals:bals, yearly:yearly};
+  }
+  function grow(start, monthly, ret, years){
+    var i = ret/1200, N = Math.round(years*12), bal = start, paid = start, rows = [{year:0, balance:start, paid:start}];
+    for (var m = 1; m <= N; m++){ bal = bal*(1+i) + monthly; paid += monthly; if (m % 12 === 0) rows.push({year:m/12, balance:bal, paid:paid}); }
+    return rows;
+  }
+
+  /* ---------- chart ---------- */
+  function niceStep(range, count){ var raw = range/count, mag = Math.pow(10, Math.floor(Math.log10(raw))), n = raw/mag; return (n < 1.5 ? 1 : n < 3 ? 2 : n < 7 ? 5 : 10) * mag; }
+  function frame(svg){
+    var cw = (svg.parentNode && svg.parentNode.clientWidth) || 640;
+    var W = Math.round(Math.min(680, Math.max(300, cw))), H = W < 480 ? 230 : 280;
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    return {W:W, H:H, L:54, R:14, T:18, B:34};
+  }
+  function mk(svg, tag, attrs, text){ var e = document.createElementNS("http://www.w3.org/2000/svg", tag); for (var k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; svg.appendChild(e); return e; }
+  function axes(svg, f, xMax, hi, xLabel){
+    var step = niceStep(hi || 1, f.W < 480 ? 4 : 5); hi = Math.ceil((hi || 1)/step)*step;
+    var sx = function(v){ return f.L + (f.W-f.L-f.R)*v/xMax; }, sy = function(v){ return f.T + (f.H-f.T-f.B)*(1 - v/hi); };
+    for (var v = 0; v <= hi + step/2; v += step){ mk(svg,"line",{x1:f.L,x2:f.W-f.R,y1:sy(v),y2:sy(v),"class":"g"}); mk(svg,"text",{x:f.L-8,y:sy(v)+4,"text-anchor":"end"}, short(v)); }
+    var xs = xMax <= 10 ? 1 : xMax <= 20 ? (f.W < 480 ? 5 : 2) : xMax <= 40 ? (f.W < 480 ? 10 : 5) : 10;
+    for (var x = 0; x <= xMax + 0.001; x += xs){
+      var an = x === 0 ? "start" : (xMax - x < xs*0.6 ? "end" : "middle");
+      mk(svg,"text",{x: x === 0 ? sx(0) - 2 : sx(x), y:f.H-f.B+20, "text-anchor":an}, xLabel(x));
+    }
+    var lastTick = Math.floor(xMax/xs)*xs;
+    if (xMax - lastTick >= xs*0.45) mk(svg,"text",{x:sx(xMax), y:f.H-f.B+20, "text-anchor":"end"}, xLabel(Math.round(xMax*10)/10));
+    return {sx:sx, sy:sy, hi:hi};
+  }
+  function path(pts){ return pts.map(function(p,i){ return (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1); }).join(" "); }
+
+  function drawLoan(base, ext){
+    var svg = $("l-chart"), f = frame(svg), xMax = Math.max(1, base.months/12);
+    var a = axes(svg, f, xMax, S.amt, function(x){ return x === 0 ? "Today" : (f.W < 420 ? "Y" : "Year ") + x; });
+    var pb = base.bals.map(function(b,m){ return [a.sx(m/12), a.sy(b)]; });
+    var pe = ext.bals.map(function(b,m){ return [a.sx(m/12), a.sy(b)]; });
+    mk(svg,"path",{d: path(pe) + " L" + a.sx(ext.months/12).toFixed(1) + " " + a.sy(0).toFixed(1) + " L" + a.sx(0).toFixed(1) + " " + a.sy(0).toFixed(1) + " Z","class":"fill-a"});
+    if (S.extra > 0) mk(svg,"path",{d:path(pb),"class":"base"});
+    mk(svg,"path",{d:path(pe),"class":"main"});
+    svg.setAttribute("aria-label", "Balance owed falls from " + money(S.amt) + " to zero after " + dur(ext.months) + (S.extra > 0 ? ", compared with " + dur(base.months) + " without extra payments." : "."));
+  }
+  function drawInv(rows, adj){
+    var svg = $("i-chart"), f = frame(svg), xMax = Math.max(1, S.span);
+    var vals = rows.map(function(r){ return {y:r.year, bal:adj(r.balance, r.year), paid:adj(r.paid, r.year)}; });
+    var top = Math.max.apply(null, vals.map(function(v){ return v.bal; }));
+    var g = S.goal > 0 ? S.goal : 0;
+    var a = axes(svg, f, xMax, Math.max(top, g*1.02), function(x){ return x === 0 ? "Today" : (f.W < 420 ? "Y" : "Year ") + x; });
+    var z = a.sy(0);
+    var pBal = vals.map(function(v){ return [a.sx(v.y), a.sy(v.bal)]; });
+    var pPaid = vals.map(function(v){ return [a.sx(v.y), a.sy(v.paid)]; });
+    mk(svg,"path",{d: path(pBal) + " " + pPaid.slice().reverse().map(function(p){ return "L" + p[0].toFixed(1) + " " + p[1].toFixed(1); }).join(" ") + " Z","class":"fill-b"});
+    mk(svg,"path",{d: path(pPaid) + " L" + a.sx(xMax).toFixed(1) + " " + z.toFixed(1) + " L" + a.sx(0).toFixed(1) + " " + z.toFixed(1) + " Z","class":"fill-a"});
+    mk(svg,"path",{d:path(pBal),"class":"edge-b"});
+    mk(svg,"path",{d:path(pPaid),"class":"main"});
+    if (g){
+      var gy = a.sy(g);
+      mk(svg,"line",{x1:f.L,x2:f.W-f.R,y1:gy,y2:gy,"class":"goal"});
+      mk(svg,"text",{x:f.L+6,y:gy-6,"class":"goal-t"}, "Goal " + short(g));
+    }
+    var last = vals[vals.length-1];
+    svg.setAttribute("aria-label", "Savings grow to " + money(last.bal) + " after " + S.span + " years, of which " + money(last.paid) + " is money paid in.");
+  }
+
+  /* ---------- render ---------- */
+  function renderLoan(){
+    var base = amort(S.amt, S.rate, S.yrs, 0), ext = amort(S.amt, S.rate, S.yrs, S.extra);
+    var repaid = S.amt + ext.interest, share = repaid > 0 ? ext.interest/repaid : 0;
+    $("l-head").innerHTML = "Of every " + S.cur + "1 you repay, <em class=\"tnum\">" + S.cur + c2.format(share) + "</em> goes to interest.";
+    $("l-sa").style.width = ((1-share)*100).toFixed(2) + "%"; $("l-sb").style.width = (share*100).toFixed(2) + "%";
+    $("l-leg").innerHTML = "<span><i class=\"sw\" style=\"background:var(--navy)\"></i>Borrowed <b class=\"tnum\">" + money(S.amt) + "</b></span><span><i class=\"sw\" style=\"background:var(--brass)\"></i>Interest <b class=\"tnum\">" + money(ext.interest) + "</b></span>";
+    var st = $("l-story");
+    if (S.extra > 0){
+      var saved = base.interest - ext.interest, sooner = base.months - ext.months;
+      st.innerHTML = "Paying <strong>" + money(S.extra) + "</strong> extra a month clears the loan in <strong>" + dur(ext.months) + "</strong>, " + dur(sooner) + " sooner, and saves <strong>" + money(saved) + "</strong> in interest.";
+    } else {
+      st.innerHTML = "Add an extra monthly payment to see how much sooner you'd be debt-free, and how much interest you'd keep.";
+    }
+    $("l-figs").innerHTML =
+      "<div><dt>Required monthly payment</dt><dd>" + money(base.M) + "</dd></div>" +
+      "<div><dt>You pay each month</dt><dd>" + money(Math.min(base.M + S.extra, S.amt + base.M)) + "</dd></div>" +
+      "<div><dt>Total repaid</dt><dd>" + money(repaid) + "</dd></div>" +
+      "<div><dt>Debt-free in</dt><dd>" + dur(ext.months) + "</dd></div>";
+    drawLoan(base, ext);
+    return {base:base, ext:ext};
+  }
+  function renderInv(){
+    var rows = grow(S.start, S.monthly, S.ret, S.span);
+    var adj = function(v, y){ return S.real ? v/Math.pow(1 + S.infl/100, y) : v; };
+    var last = rows[rows.length-1], bal = adj(last.balance, last.year), paid = adj(last.paid, last.year), growth = bal - paid;
+    var share = bal > 0 ? Math.max(0, growth)/bal : 0;
+    $("i-head").innerHTML = "After " + S.span + (S.span === 1 ? " year" : " years") + ", <em class=\"tnum\">" + n0.format(Math.round(share*100)) + "%</em> of your balance is growth you never paid in.";
+    $("i-sa").style.width = ((1-share)*100).toFixed(2) + "%"; $("i-sb").style.width = (share*100).toFixed(2) + "%";
+    $("i-leg").innerHTML = "<span><i class=\"sw\" style=\"background:var(--navy)\"></i>You paid in <b class=\"tnum\">" + money(paid) + "</b></span><span><i class=\"sw\" style=\"background:var(--brass)\"></i>Growth <b class=\"tnum\">" + money(growth) + "</b></span>";
+    var st = $("i-story"); st.className = "story";
+    if (S.goal > 0){
+      var hit = null;
+      for (var k = 0; k < rows.length; k++){ if (adj(rows[k].balance, rows[k].year) >= S.goal){ hit = rows[k].year; break; } }
+      if (hit !== null){
+        st.innerHTML = hit === 0 ? "You're already at your <strong>" + money(S.goal) + "</strong> goal." : "You reach your <strong>" + money(S.goal) + "</strong> goal in <strong>year " + hit + "</strong>" + (hit < S.span ? ", " + (S.span - hit) + (S.span - hit === 1 ? " year" : " years") + " ahead of your horizon." : ", right on time.");
+      } else {
+        var N = S.span*12, i = S.ret/1200, gNom = S.real ? S.goal*Math.pow(1 + S.infl/100, S.span) : S.goal;
+        var fvStart = S.start*Math.pow(1+i, N), need = i > 0 ? (gNom - fvStart)*i/(Math.pow(1+i, N) - 1) : (gNom - S.start)/N;
+        st.className = "story warn";
+        st.innerHTML = "You'd be <strong>" + money(S.goal - bal) + "</strong> short of your " + money(S.goal) + " goal. Adding about <strong>" + money(Math.max(0, need)) + "</strong> a month instead would get you there.";
+      }
+    } else {
+      st.innerHTML = "Set a goal to see when you'd reach it, or what it would take.";
+    }
+    $("i-figs").innerHTML =
+      "<div><dt>Balance at year " + S.span + (S.real ? ", today's money" : "") + "</dt><dd>" + money(bal) + "</dd></div>" +
+      "<div><dt>" + (S.real ? "Before inflation" : "In today's money") + "</dt><dd>" + money(S.real ? last.balance : last.balance/Math.pow(1 + S.infl/100, last.year)) + "</dd></div>" +
+      "<div><dt>You paid in</dt><dd>" + money(paid) + "</dd></div>" +
+      "<div><dt>Growth</dt><dd>" + money(growth) + "</dd></div>";
+    $("i-cap").textContent = "Navy is what you paid in; brass is growth on top of it" + (S.real ? ", shown in today's money." : ".");
+    drawInv(rows, adj);
+    return {rows:rows, adj:adj};
+  }
+  function renderAll(){ renderLoan(); renderInv(); }
+
+  /* ---------- inputs ---------- */
+  Object.keys(F).forEach(function(k){
+    var inp = $(k), rng = $(k + "-r");
+    inp.value = fmt(k, S[k]);
+    if (rng) rng.value = S[k];
+    function commit(v){ S[k] = v; save(); renderAll(); }
+    inp.addEventListener("input", function(){
+      var v = parse(inp.value);
+      if (F[k].optional && inp.value.trim() === ""){ inp.removeAttribute("aria-invalid"); commit(0); return; }
+      if (isNaN(v) || v < F[k].min || v > F[k].max){ inp.setAttribute("aria-invalid","true"); return; }
+      inp.removeAttribute("aria-invalid");
+      if (rng) rng.value = v;
+      commit(v);
+    });
+    inp.addEventListener("blur", function(){
+      var v = parse(inp.value);
+      if (F[k].optional && inp.value.trim() === "") v = 0;
+      if (isNaN(v)) v = S[k];
+      v = Math.min(F[k].max, Math.max(F[k].min, v));
+      inp.value = fmt(k, v); inp.removeAttribute("aria-invalid");
+      if (rng) rng.value = v;
+      commit(v);
+    });
+    inp.addEventListener("keydown", function(e){ if (e.key === "Enter") inp.blur(); });
+    if (rng) rng.addEventListener("input", function(){ var v = parseFloat(rng.value); inp.value = fmt(k, v); inp.removeAttribute("aria-invalid"); commit(v); });
+  });
+  var realBox = $("real"); realBox.checked = !!S.real;
+  realBox.addEventListener("change", function(){ S.real = realBox.checked; save(); renderInv(); });
+
+  function applyCur(){ Array.prototype.forEach.call(document.querySelectorAll(".cur"), function(e){ e.textContent = S.cur; }); }
+  var curSel = $("cur"); curSel.value = S.cur; applyCur();
+  curSel.addEventListener("change", function(){ S.cur = curSel.value; applyCur(); save(); renderAll(); });
+
+  /* ---------- tabs ---------- */
+  var tabs = Array.prototype.slice.call(document.querySelectorAll("[role=tab]"));
+  function showTab(t, focus){
+    S.tab = t; save();
+    tabs.forEach(function(b){ var on = b.dataset.tab === t; b.setAttribute("aria-selected", on ? "true" : "false"); b.tabIndex = on ? 0 : -1; if (on && focus) b.focus(); });
+    $("p-loan").hidden = t !== "loan"; $("p-inv").hidden = t !== "inv";
+    renderAll();
+  }
+  tabs.forEach(function(b, i){
+    b.addEventListener("click", function(){ showTab(b.dataset.tab); });
+    b.addEventListener("keydown", function(e){
+      var d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0; if (!d) return;
+      e.preventDefault(); showTab(tabs[(i + d + tabs.length) % tabs.length].dataset.tab, true);
+    });
+  });
+
+  /* ---------- lead ---------- */
+  $("lead").addEventListener("submit", function(e){
+    e.preventDefault();
+    var em = $("l-email"), m = $("lead-msg"), v = em.value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)){ m.className = "msg err"; m.textContent = "Enter an email like name@example.com."; em.setAttribute("aria-invalid","true"); em.focus(); return; }
+    em.removeAttribute("aria-invalid");
+    m.className = "msg ok";
+    m.textContent = "Demo mode: nothing was sent. In a live build this books the call and sends the advisor your numbers.";
+  });
+
+  showTab(S.tab);
+  var rz; window.addEventListener("resize", function(){ clearTimeout(rz); rz = setTimeout(renderAll, 150); });
+
+  /* ---------- CSV ---------- */
+  var csvBtn = $("csv"), csvMsg = $("csv-msg");
+  function toCsv(rows){ return rows.map(function(r){ return r.map(function(c){ var t = String(c); return /[",\n]/.test(t) ? "\"" + t.replace(/"/g,"\"\"") + "\"" : t; }).join(","); }).join("\n"); }
+  if (window.claude && typeof window.claude.use === "function"){
+    window.claude.use("downloads").then(function(dl){
+      if (!dl) return;
+      csvBtn.hidden = false;
+      csvBtn.addEventListener("click", function(){
+        var name, rows;
+        if (S.tab === "loan"){
+          var ext = amort(S.amt, S.rate, S.yrs, S.extra);
+          rows = [["Loan cost (illustrative)"],["Amount", S.amt],["Rate %", S.rate],["Term years", S.yrs],["Extra per month", S.extra],["Currency", S.cur],[],["Year","Principal paid","Interest paid","Balance at year end"]];
+          ext.yearly.forEach(function(y){ rows.push([y.year, Math.round(y.principal), Math.round(y.interest), Math.round(y.balance)]); });
+          name = "loan-cost-by-year.csv";
+        } else {
+          var g = grow(S.start, S.monthly, S.ret, S.span);
+          rows = [["Savings growth (illustrative)"],["Starting amount", S.start],["Monthly", S.monthly],["Return %", S.ret],["Inflation %", S.infl],["Currency", S.cur],[],["Year","Paid in","Balance","Balance in today's money"]];
+          g.forEach(function(r){ rows.push([r.year, Math.round(r.paid), Math.round(r.balance), Math.round(r.balance/Math.pow(1 + S.infl/100, r.year))]); });
+          name = "savings-growth-by-year.csv";
+        }
+        csvMsg.className = "msg"; csvMsg.textContent = "";
+        dl.save({filename:name, data:toCsv(rows)}).then(function(){ csvMsg.className = "msg ok"; csvMsg.textContent = "Downloaded."; })
+        .catch(function(err){
+          var c = err && err.code;
+          if (c === "declined") return;
+          if (c === "rate_limited"){ csvMsg.className = "msg err"; csvMsg.textContent = "A download prompt is already open. Finish that one, then try again."; return; }
+          csvBtn.hidden = true; csvMsg.className = "msg err"; csvMsg.textContent = "Downloads aren't available in this view.";
+        });
+      });
+    });
+  }
+})();
+</script>
+</body>
+</html>
